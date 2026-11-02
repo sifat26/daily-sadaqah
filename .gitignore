@@ -13,3 +13,5 @@ storage/public/*
 *.log
 .DS_Store
 Thumbs.db
+
+.vercel
