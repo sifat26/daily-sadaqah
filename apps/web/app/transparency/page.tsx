@@ -2,6 +2,8 @@ import React from 'react';
 import { apiRequest, fetchTransparencySummary } from '../../lib/api-client';
 import { CATEGORY_LABELS_BN, formatBdt } from '../../lib/format';
 
+export const dynamic = 'force-dynamic';
+
 interface PublicExpenseItem {
   id: string;
   projectName: string;

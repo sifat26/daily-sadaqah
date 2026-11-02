@@ -2,6 +2,8 @@ import React from 'react';
 import { fetchPublicProjects } from '../../lib/api-client';
 import { formatBdt } from '../../lib/format';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectsPage() {
   const projects = await fetchPublicProjects();
 

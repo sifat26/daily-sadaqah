@@ -2,6 +2,8 @@ import React from 'react';
 import { fetchProjectBySlug } from '../../../lib/api-client';
 import { formatBdt } from '../../../lib/format';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProjectDetailPage({
   params,
 }: {
