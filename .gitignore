@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+storage/private/*
+storage/public/*
+!storage/private/.gitkeep
+!storage/public/.gitkeep
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+Thumbs.db

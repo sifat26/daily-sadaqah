@@ -1,0 +1,46 @@
+{
+  "name": "daily-sadaqah-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Daily Sadaqah — Production-Oriented Bengali Islamic Charity & Community Welfare Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:web": "pnpm --filter @daily-sadaqah/web dev",
+    "dev:api": "pnpm --filter @daily-sadaqah/api dev",
+    "build": "node scripts/build-all.mjs",
+    "build:shared": "pnpm --filter @daily-sadaqah/shared build",
+    "build:api": "pnpm --filter @daily-sadaqah/api build",
+    "build:web": "pnpm --filter @daily-sadaqah/web build",
+    "typecheck": "node scripts/typecheck-all.mjs",
+    "lint": "node scripts/lint-all.mjs",
+    "test": "node scripts/run-tests.mjs",
+    "test:unit": "node scripts/run-tests.mjs --suite=unit",
+    "test:integration": "node scripts/run-tests.mjs --suite=integration",
+    "test:e2e": "node scripts/run-tests.mjs --suite=e2e",
+    "db:generate": "prisma generate --schema=prisma/schema.prisma",
+    "db:push": "node scripts/deploy-db.mjs",
+    "db:migrate": "prisma migrate deploy --schema=prisma/schema.prisma",
+    "db:migrate:dev": "prisma migrate dev --schema=prisma/schema.prisma",
+    "db:seed": "tsx prisma/seed.ts --confirm-seed",
+    "admin:bootstrap": "tsx prisma/bootstrap-admin.ts",
+    "package:zip": "node scripts/package-zip.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "prisma": "5.19.1",
+    "tsx": "4.19.0",
+    "typescript": "5.5.4",
+    "vitest": "2.0.5"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "packageManager": "pnpm@9.9.0",
+  "dependencies": {
+    "@prisma/client": "5.19.1"
+  }
+}

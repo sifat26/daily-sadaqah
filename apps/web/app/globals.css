@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #176B45;
+  --color-dark-green: #104B34;
+  --color-gold: #C9A44C;
+  --color-bg: #F8FAF7;
+  --color-white: #FFFFFF;
+  --color-text: #1F2937;
+  --color-muted: #6B7280;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+  line-height: 1.7;
+  overflow-x: hidden;
+}

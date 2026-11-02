@@ -1,0 +1,385 @@
+// ============================================================================
+// Daily Sadaqah — Normalized PostgreSQL Schema (Prisma ORM)
+// Monetary values use integer BDT (minor unit / whole BDT integer or Decimal)
+// and never floating-point numbers.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectCategory {
+  MEDICAL
+  FOOD
+  CLEAN_WATER
+  ORPHAN_CHILD
+  EDUCATION
+  HOUSING
+  EMERGENCY
+  RAMADAN_IFTAR
+  GENERAL_SADAQAH
+}
+
+enum PaymentProvider {
+  BKASH
+  NAGAD
+}
+
+enum DonationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  REVERSED
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+}
+
+enum HelpRequestCategory {
+  MEDICAL
+  EDUCATION
+  FOOD
+  CLEAN_WATER
+  HOUSING
+  EMERGENCY
+  OTHER
+}
+
+enum HelpRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+  COMPLETED
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        RoleName @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id                     String                  @id @default(cuid())
+  phone                  String                  @unique
+  name                   String?
+  status                 AccountStatus           @default(ACTIVE)
+  roleId                 String
+  role                   Role                    @relation(fields: [roleId], references: [id])
+  sessions               Session[]
+  donations              Donation[]              @relation("DonorDonations")
+  verificationsDone      DonationVerification[]  @relation("AdminVerifications")
+  dailySadaqahPreference DailySadaqahPreference?
+  notificationPreference NotificationPreference?
+  bloodDonorProfile      BloodDonor?
+  helpRequests           HelpRequest[]           @relation("ApplicantHelpRequests")
+  helpReviewsDone        HelpRequest[]           @relation("AdminReviewedHelpRequests")
+  expensesCreated        Expense[]               @relation("ExpenseCreator")
+  expensesApproved       Expense[]               @relation("ExpenseApprover")
+  auditLogs              AuditLog[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  deletedAt              DateTime?
+
+  @@index([phone])
+  @@index([roleId])
+  @@map("users")
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  csrfToken    String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model OtpVerification {
+  id          String    @id @default(cuid())
+  phone       String
+  otpHash     String
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([phone, expiresAt])
+  @@map("otp_verifications")
+}
+
+model DonationProject {
+  id              String                   @id @default(cuid())
+  name            String
+  slug            String                   @unique
+  description     String
+  category        ProjectCategory
+  imageUrl        String
+  targetAmountBdt Decimal                  @db.Decimal(14, 2)
+  collectedBdt    Decimal                  @default(0) @db.Decimal(14, 2)
+  status          ProjectStatus            @default(ACTIVE)
+  donations       Donation[]
+  expenses        Expense[]
+  updates         ProjectUpdate[]
+  dailyPrefs      DailySadaqahPreference[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  deletedAt       DateTime?
+
+  @@index([status, category])
+  @@map("donation_projects")
+}
+
+model ProjectUpdate {
+  id          String          @id @default(cuid())
+  projectId   String
+  project     DonationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  publishedAt DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  @@index([projectId, publishedAt])
+  @@map("project_updates")
+}
+
+model Donation {
+  id              String                @id @default(cuid())
+  userId          String?
+  user            User?                 @relation("DonorDonations", fields: [userId], references: [id], onDelete: SetNull)
+  projectId       String
+  project         DonationProject       @relation(fields: [projectId], references: [id])
+  senderPhone     String
+  donorName       String?
+  isAnonymous     Boolean               @default(false)
+  amountBdt       Decimal               @db.Decimal(14, 2)
+  provider        PaymentProvider
+  transactionId   String                @unique
+  message         String?
+  isDailySadaqah  Boolean               @default(false)
+  status          DonationStatus        @default(PENDING)
+  verification    DonationVerification?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([projectId, status])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("donations")
+}
+
+model DonationVerification {
+  id         String         @id @default(cuid())
+  donationId String         @unique
+  donation   Donation       @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  adminId    String
+  admin      User           @relation("AdminVerifications", fields: [adminId], references: [id])
+  decision   DonationStatus
+  notes      String?
+  verifiedAt DateTime       @default(now())
+
+  @@index([adminId, verifiedAt])
+  @@map("donation_verifications")
+}
+
+model DailySadaqahPreference {
+  id            String          @id @default(cuid())
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId     String
+  project       DonationProject @relation(fields: [projectId], references: [id])
+  amountBdt     Decimal         @db.Decimal(14, 2)
+  enabled       Boolean         @default(true)
+  reminderTime  String          @default("09:00")
+  currentStreak Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@map("daily_sadaqah_preferences")
+}
+
+model NotificationPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smsReminderEnabled  Boolean  @default(false)
+  inAppReminder       Boolean  @default(true)
+  preferredTime       String   @default("09:00")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+model Expense {
+  id               String            @id @default(cuid())
+  projectId        String
+  project          DonationProject   @relation(fields: [projectId], references: [id])
+  category         ProjectCategory
+  amountBdt        Decimal           @db.Decimal(14, 2)
+  expenseDate      DateTime
+  purpose          String
+  recipientRef     String?
+  publicDisclosure Boolean           @default(true)
+  status           ExpenseStatus     @default(APPROVED)
+  createdById      String
+  createdBy        User              @relation("ExpenseCreator", fields: [createdById], references: [id])
+  approvedById     String?
+  approvedBy       User?             @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  evidences        ExpenseEvidence[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([projectId, status])
+  @@index([status, expenseDate])
+  @@map("expenses")
+}
+
+model ExpenseEvidence {
+  id               String   @id @default(cuid())
+  expenseId        String
+  expense          Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileKey          String
+  fileName         String
+  mimeType         String
+  sizeBytes        Int
+  publicDisclosure Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@index([expenseId])
+  @@map("expense_evidences")
+}
+
+model BloodDonor {
+  id                    String     @id @default(cuid())
+  userId                String     @unique
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName           String
+  bloodGroup            BloodGroup
+  district              String
+  area                  String
+  contactPhone          String
+  publicPhoneConsent    Boolean    @default(false)
+  lastDonationDate      DateTime?
+  estimatedNextDate     DateTime?
+  isAvailable           Boolean    @default(true)
+  isActive              Boolean    @default(true)
+  notes                 String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@index([bloodGroup, district, isActive, isAvailable])
+  @@map("blood_donors")
+}
+
+model HelpRequest {
+  id               String                @id @default(cuid())
+  applicantId      String
+  applicant        User                  @relation("ApplicantHelpRequests", fields: [applicantId], references: [id])
+  title            String
+  description      String
+  category         HelpRequestCategory
+  district         String
+  area             String
+  requiredAmountBdt Decimal              @db.Decimal(14, 2)
+  applicantName    String
+  applicantPhone   String
+  status           HelpRequestStatus     @default(PENDING)
+  publicVisibility Boolean               @default(false)
+  adminNotes       String?
+  reviewedById     String?
+  reviewedBy       User?                 @relation("AdminReviewedHelpRequests", fields: [reviewedById], references: [id])
+  reviewedAt       DateTime?
+  completedAt      DateTime?
+  documents        HelpRequestDocument[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([status, publicVisibility])
+  @@index([applicantId, createdAt])
+  @@map("help_requests")
+}
+
+model HelpRequestDocument {
+  id            String      @id @default(cuid())
+  helpRequestId String
+  helpRequest   HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  fileKey       String
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  isPrivate     Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  @@index([helpRequestId])
+  @@map("help_request_documents")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
