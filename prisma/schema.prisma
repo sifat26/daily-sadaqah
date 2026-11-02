@@ -105,6 +105,9 @@ model Role {
 model User {
   id                     String                  @id @default(cuid())
   phone                  String                  @unique
+  email                  String?                 @unique
+  passwordHash           String?
+  googleId               String?                 @unique
   name                   String?
   status                 AccountStatus           @default(ACTIVE)
   roleId                 String

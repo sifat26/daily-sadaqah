@@ -99,3 +99,4 @@ export const FALLBACK_PROJECTS = [
     status: 'ACTIVE' as const,
   },
 ];
+

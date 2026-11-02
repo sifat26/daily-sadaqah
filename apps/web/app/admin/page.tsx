@@ -82,6 +82,7 @@ interface OverviewMetrics {
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'donations' | 'expenses' | 'help' | 'donors' | 'audit'>('donations');
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: string; name?: string; phone?: string } | null>(null);
   const [overview, setOverview] = useState<OverviewMetrics | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
@@ -115,6 +116,15 @@ export default function AdminDashboardPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
 
   async function loadAllData() {
+    // 0. Current admin user
+    void apiRequest<{ user: { id: string; role: string; name?: string; phone?: string } | null }>('/auth/me').then((res) => {
+      if (res.success && res.data?.user) {
+        setCurrentUser(res.data.user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
     // 1. Transparency summary for overview metrics
     void apiRequest<OverviewMetrics>('/transparency/summary').then((res) => {
       if (res.success && res.data) setOverview(res.data);
@@ -256,6 +266,34 @@ export default function AdminDashboardPage() {
           <p className="text-sm text-textMuted">
             ম্যানুয়াল ট্রানজেকশন যাচাই, অনুমোদিত ব্যয় ব্যবস্থাপনা, সাহায্য আবেদন ও নিরাপত্তা অডিট লগ।
           </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            <div className="flex items-center gap-3 bg-white p-2.5 px-4 rounded-xl border border-gray-200 shadow-xs">
+              <div className="text-right">
+                <div className="text-xs font-bold text-darkGreen">{currentUser.name || 'প্রধান অ্যাডমিন'}</div>
+                <div className="text-[11px] text-textMuted font-mono">{currentUser.phone || currentUser.role}</div>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  await apiRequest('/auth/logout', { method: 'POST', body: JSON.stringify({}) });
+                  window.location.href = '/login?tab=admin';
+                }}
+                className="text-xs text-red-600 hover:text-red-700 font-bold border border-red-200 bg-red-50 px-2.5 py-1 rounded-lg"
+              >
+                লগআউট
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/login?tab=admin"
+              className="text-xs font-bold bg-darkGreen hover:bg-primary text-white px-4 py-2.5 rounded-xl transition-all shadow-xs"
+            >
+              🔑 অ্যাডমিন লগইন করুন
+            </a>
+          )}
         </div>
       </div>
 

@@ -270,6 +270,21 @@ export default function UserAccountPage() {
         </a>
       </div>
 
+      {!user && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-primary/30 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div>
+            <div className="text-sm font-bold text-darkGreen">আপনি এখনও অ্যাকাউন্টে লগইন করেননি</div>
+            <div className="text-xs text-textMuted mt-0.5">আপনার ব্যক্তিগত দানের হিসাব, দৈনিক সাদাকা ও রক্তদাতা তথ্য সংরক্ষণ করতে লগইন করুন।</div>
+          </div>
+          <a
+            href="/login"
+            className="px-4 py-2 bg-primary hover:bg-darkGreen text-white text-xs font-bold rounded-xl transition-all shadow-xs"
+          >
+            লগইন বা একাউন্ট খুলুন →
+          </a>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-gray-200">
         {[
